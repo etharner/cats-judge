@@ -1,7 +1,7 @@
 use strict;
 use warnings;
 
-use Test::More tests => 30;
+use Test::More tests => 31;
 
 use File::Spec;
 
@@ -208,6 +208,12 @@ maybe_subtest 'interactive empty', 4, sub {
 
 maybe_subtest 'interactive IL', 4, sub {
     like run_judge_sol($p_interactive, 'read.cpp')->stdout->[-1], qr/idleness limit exceeded/, 'IL';
+};
+
+my $p_main = FS->catfile($path, 'p_main');
+
+maybe_subtest 'main', 4, sub {
+    like run_judge_sol($p_main, 'test1.h')->stdout->[-1], qr/accepted/, 'main result'
 };
 
 1;
