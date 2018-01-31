@@ -1,7 +1,7 @@
 use strict;
 use warnings;
 
-use Test::More tests => 31;
+use Test::More tests => 37;
 
 use File::Spec;
 
@@ -17,7 +17,7 @@ use CATS::Loggers;
 my $perl = "{$^X}";
 my $judge = FS->catfile($path, '..', 'judge.pl');
 my $fu = CATS::FileUtil->new({ logger => CATS::Logger::Count->new, run_temp_dir => '.' });
-
+my $verbose = 0;
 
 sub maybe_subtest {
     my ($name, $plan, $subtest) = @_;
@@ -31,7 +31,9 @@ sub maybe_subtest {
 }
 
 sub run_judge {
-    my $r = $fu->run([ $perl, $judge, @_ ]);
+    my @p = ($judge, grep defined $_, @_);
+    print join ' ', map { ref $_ ? join('/', @$_) : $_ } @p if $verbose;
+    my $r = $fu->run([ $perl, @p ]);
     is $r->ok, 1, 'ok';
     is $r->err, '', 'no err';
     is $r->exit_code, 0, 'exit_code';
@@ -51,9 +53,11 @@ maybe_subtest 'usage', 4, sub {
     like join('', @{run_judge()->stdout}), qr/Usage/, 'usage';
 };
 
-maybe_subtest 'config print', 4, sub {
+maybe_subtest 'config print', 8, sub {
     like run_judge('config print', qw(config --print sleep_time))->stdout->[0],
         qr/sleep_time = \d+/, 'config print';
+    like run_judge('config print bare', qw(config --bare --print sleep_time))->stdout->[0],
+        qr/^\d+$/, 'config print bare';
 };
 
 maybe_subtest 'usage', 4, sub {
@@ -123,8 +127,13 @@ maybe_subtest 'verdicts WA', 4, sub {
     like run_judge_sol($p_verdicts, 'print1.cpp')->stdout->[-1], qr/wrong answer/, 'WA';
 };
 
-maybe_subtest 'verdicts WA before PE', 4, sub {
+maybe_subtest 'verdicts WA before PE All', 4, sub {
     like run_judge_sol($p_verdicts, 'copy.cpp')->stdout->[-1], qr/wrong answer on test 1/, 'WA';
+};
+
+maybe_subtest 'verdicts WA before PE ACM', 4, sub {
+    like run_judge_sol($p_verdicts, 'copy.cpp', 'use-plan' => 'acm' )->stdout->[-1],
+        qr/wrong answer on test 1/, 'WA';
 };
 
 maybe_subtest 'verdicts PE', 4, sub {
@@ -169,6 +178,11 @@ maybe_subtest 'verdicts WL', 4, sub {
 
 my $p_generator = FS->catfile($path, 'p_generator');
 
+maybe_subtest 'generator install', 4, sub {
+    like run_judge(qw(install --force-install -p), $p_generator)->stdout->[-1],
+        qr/problem.*installed/, 'installed';
+};
+
 maybe_subtest 'generator', 4, sub {
     like run_judge_sol($p_generator, 'sol_copy.cpp')->stdout->[-1], qr/accepted/, 'generator';
 };
@@ -185,13 +199,21 @@ maybe_subtest 'answer text WA', 4, sub {
 
 my $p_module = FS->catfile($path, 'p_module');
 
-maybe_subtest 'module import', 4, sub {
-    like run_judge_sol($p_module, 'test.cpp')->stdout->[-1], qr/accepted/, 'module import result'
+maybe_subtest 'module export', 4, sub {
+    like run_judge_sol($p_module, 'test.cpp')->stdout->[-1], qr/accepted/, 'module export'
 };
 
-maybe_subtest 'module orphan', 5, sub {
+my $p_module_import = FS->catfile($path, 'p_module_import');
+
+maybe_subtest 'module import', 4, sub {
+    like run_judge_sol($p_module_import, 'ok.cpp', 'force-install' => undef)->stdout->[-1],
+        qr/accepted/, 'module import'
+};
+
+maybe_subtest 'module orphan', 6, sub {
     my $r = run_judge(qw(clear-cache -p), $p_module)->stdout;
-    like $r->[-2], qr/Orphaned.*test\.module\.1/, 'warning';
+    like $r->[-3], qr/Orphaned.*test\.module\.1/, 'warning';
+    like $r->[-2], qr/Orphaned.*test\.module\.2/, 'warning';
     like $r->[-1], qr/cache\s+removed/, 'cache removed';
 };
 
@@ -214,6 +236,29 @@ my $p_main = FS->catfile($path, 'p_main');
 
 maybe_subtest 'main', 4, sub {
     like run_judge_sol($p_main, 'test1.h')->stdout->[-1], qr/accepted/, 'main result'
+};
+
+my $q_nogen = FS->catfile($path, 'q_nogen');
+
+maybe_subtest 'failed generator', 4, sub {
+    like run_judge(qw(install -p), $q_nogen)->stdout->[-1],
+        qr/problem.*failed to install/, 'failed';
+};
+
+my $q_validator = FS->catfile($path, 'q_validator');
+
+maybe_subtest 'failed validator', 5, sub {
+    my $r = run_judge(qw(install -p), $q_validator)->stdout;
+    like $r->[-2], qr/input validation failed: #2/, 'validation';
+    like $r->[-1], qr/problem.*failed to install/, 'failed';
+};
+
+my $q_validator_stdin = FS->catfile($path, 'q_validator_stdin');
+
+maybe_subtest 'stdin validator', 5, sub {
+    my $r = run_judge(qw(install -p), $q_validator_stdin)->stdout;
+    like $r->[-2], qr/input validation failed: #3/, 'validation';
+    like $r->[-1], qr/problem.*failed to install/, 'failed';
 };
 
 1;

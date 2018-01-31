@@ -7,11 +7,13 @@ use File::Copy qw(copy);
 use File::Fetch;
 use File::Path qw(make_path);
 use File::Spec;
+use FindBin;
 use Getopt::Long;
 use IPC::Cmd;
 use List::Util qw(max);
 
-use lib 'lib';
+use lib File::Spec->catdir($FindBin::Bin, 'lib');
+
 use CATS::ConsoleColor qw(colored);
 use CATS::DevEnv::Detector::Utils qw(globq run);
 use CATS::FileUtil;
@@ -116,8 +118,10 @@ step 'Verify optional modules', sub {
         IPC::Run
         LWP::Protocol::https
         LWP::UserAgent
+        SQL::Abstract
         Term::ReadKey
-        WWW::Mechanize);
+        WWW::Mechanize
+    );
     warn join "\n", 'Some optional modules not found:', @bad, '' if @bad;
 };
 
@@ -135,7 +139,7 @@ step 'Detect development environments', sub {
     IPC::Cmd->can_capture_buffer or print ' IPC::Cmd is inadequate, will use emulation';
     print "\n";
     CATS::DevEnv::Detector::Utils::disable_error_dialogs();
-    for (globq(File::Spec->catfile(qw[lib CATS DevEnv Detector *.pm]))) {
+    for (globq(File::Spec->catfile($FindBin::Bin, qw[lib CATS DevEnv Detector *.pm]))) {
         my ($name) = /(\w+)\.pm$/;
         next if $name =~ /^(Utils|Base)$/ || $opts{devenv} && $name !~ qr/$opts{devenv}/i;
         require $_;
@@ -144,7 +148,12 @@ step 'Detect development environments', sub {
         for (values %{$d->detect}){
             printf "      %s %-12s %s\n",
                 ($_->{preferred} ? '*' : $_->{valid} ? ' ' : '?'), $_->{version}, $_->{path};
-            push @detected_DEs, { path => $_->{path}, code => $d->code } if ($_->{preferred});
+            my $ep = $_->{extra_paths};
+            for (sort keys %{$ep}) {
+                printf "        %12s %s\n", $_, $ep->{$_};
+            }
+            push @detected_DEs, { path => $_->{path}, code => $d->code, extra_paths => $ep }
+                if $_->{preferred};
         }
     }
 };
@@ -223,6 +232,7 @@ step 'Save configuration', sub {
     my $sp = $platform ?
         File::Spec->rel2abs(CATS::Spawner::Platform::get_path($platform)) : undef;
     while (<$conf_in>) {
+        my $orig = $_;
         s~(\s+proxy=")"~$1$proxy"~ if defined $proxy;
         s~(\sname="#spawner"\s+value=")[^"]+"~$1$sp"~ if defined $platform;
         if (($platform // '') ne 'win32') {
@@ -234,9 +244,13 @@ step 'Save configuration', sub {
         }
 
         $flag = $flag ? $_ !~ m/<!-- END -->/ : $_ =~ m/<!-- This code is touched by install.pl -->/;
-        my ($code) = /de_code_autodetect="(\d+)"/;
-        s/value="[^"]*"/value="$path_idx{$code}->{path}"/ if $flag && $code && $path_idx{$code};
+        my ($code, $extra) = /de_code_autodetect="(\d+)(?:\.([a-zA-Z]+))?"/;
+        if ($flag && $code && (my $de = $path_idx{$code})) {
+            my $path = $extra ? $de->{extra_paths}->{$extra} : $de->{path};
+            s/value="[^"]*"/value="$path"/;
+        }
         print $conf_out $_;
+        print "\n    $orig -> $_" if $opts{verbose} && $orig ne $_;
     }
     close $conf_in;
     close $conf_out;

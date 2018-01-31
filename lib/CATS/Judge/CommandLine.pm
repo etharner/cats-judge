@@ -32,11 +32,12 @@ Commands:
     #run# --problem <zip_or_directory_or_name> [--force-install]
         --run <file>... [--de <de_code>] [--testset <testset>]
         [--result text|html|none] [--result=columns <regexp>]
+    #list# --url <url> [--system cats|polygon]
     #download# --problem <zip_or_directory_or_name> --url <url>
         [--system cats|polygon]
     #upload# --problem <zip_or_directory_or_name> --url <url>
         [--system cats|polygon]
-    #config# --print <regexp>
+    #config# --print <regexp> [--bare]
     #clear-cache# --problem <zip_or_directory_or_name>
     #help#|-?
 
@@ -55,7 +56,8 @@ USAGE
 my %commands = (
     '-?' => [],
     config => [
-        '!print:s'
+        '!print:s',
+        'bare',
     ],
     'clear-cache' => [
         '!problem=s',
@@ -69,6 +71,10 @@ my %commands = (
     install => [
         'force-install',
         '!problem=s',
+    ],
+    list => [
+        'system=s',
+        '!url=s',
     ],
     run => [
         'de=i',

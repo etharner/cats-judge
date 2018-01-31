@@ -36,8 +36,9 @@ At least some programming languages, such as C++ and Pascal should be installed 
 
 ## Installation
 
-  * Make sure your `perl` and `git` are in `PATH`
   * Clone this repository
+  * To install development environments and tools on Windows, run scripts in `install` directory
+  * Make sure your `perl` and `git` are in `PATH`
   * Run `perl install.pl`
   * See [Advanced installation](#advanced-installation) in case of problems
 
@@ -121,12 +122,21 @@ display only test number and judge verdict for each test.
 j run B.zip -run sol.pas -t 1,3,12-15 -format=polygon
 ```
 Test solution `sol.pas` for a Polygon-style problem.
-Run only tests 1, 3,  12, 13, 14 and 15.
+Run only tests 1, 3, 12, 13, 14 and 15.
 
 ```
 j run B.zip -run sol.cpp -de 102
 ```
 Enforce GCC compiler for solution.
+
+### `list` command
+
+List available problems from web-based contest control system.
+Request credentials if needed.
+
+Options:
+  * `--url <url>` required
+  * `--system cats|polygon` use given Web API. By default system is detected based on URL prefix.
 
 ### `download` command
 
@@ -154,6 +164,7 @@ Work with configuration.
 
 Options:
   * `--print <regexp>` print configuration
+  * `--bare` print values without names
 
 Examples:
 ```
@@ -176,7 +187,7 @@ Options:
 
 ### `serve` command
 
-Start judging server.
+Start judging server. On Windows it is recommended to use `judge.cmd` wrapper.
 
 ### `help` command
 

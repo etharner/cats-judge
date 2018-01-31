@@ -22,6 +22,7 @@
     proxy=""
     api="DirectDatabase"
     columns="RVTMWCO"
+    log_dump_size="200000"
     confess=""
 >
 <!-- api: WebApi | DirectDatabase -->
@@ -38,14 +39,15 @@
 
 <!-- This code is touched by install.pl -->
 <define name="#arch_7z" de_code_autodetect="2" value="C:\Program Files\7-Zip\7z.exe" />
-<define name="#java" de_code_autodetect="403" value="C:\Program Files\Java\jdk1.7.0_03\bin" />
+<define name="#javac" de_code_autodetect="403" value="C:\Program Files\Java\jdk1.7.0_03\bin\javac.exe" />
+<define name="#java" de_code_autodetect="403.runtime" value="C:\Program Files\Java\jdk1.7.0_03\bin\java.exe" />
 <define name="#ms_csc" de_code_autodetect="402" value="C:\Windows\Microsoft.NET\Framework\v4.0.30319\csc.exe" />
-<define name="#go" de_code_autodetect="404" value="C:\Go\bin\go.exe" />
+<define name="#go" de_code_autodetect="404" value="C:\Lang\go\bin\go.exe" />
 
-<define name="#ruby" de_code_autodetect="504" value="C:\Lang\Ruby\1.9.3\bin\ruby.exe" />
 <define name="#perl" de_code_autodetect="501" value="C:\Lang\Perl\5.14.2\perl\bin\perl.exe" />
 <define name="#python" de_code_autodetect="502" value="C:\Lang\Python\3.3.3\python.exe" />
 <define name="#haskell" de_code_autodetect="503" value="C:\Lang\Haskell\2011.2.0.1\bin\ghc.exe" />
+<define name="#ruby" de_code_autodetect="504" value="C:\Lang\Ruby\1.9.3\bin\ruby.exe" />
 <define name="#php" de_code_autodetect="505" value="C:\Lang\PHP\5.4.0\php.exe" />
 <define name="#erlang" de_code_autodetect="506" value="C:\Lang\Erlang\erl5.10.4\bin" />
 <define name="#nodejs" de_code_autodetect="507" value="C:\Lang\nodejs\node.exe" />
@@ -59,7 +61,10 @@
 <define name="#bcc" de_code_autodetect="104" value="%comspec% /C ..\bcc.cmd" />
 <define name="#clang" de_code_autodetect="106" value="C:\lang\LLVM\bin\clang++.exe" />
 
-<define name="#delphi" de_code_autodetect="203" value="C:\Program Files\Embarcadero\RAD Studio\7.0\bin\DCC32.EXE" />
+<define name="#rust" de_code_autodetect="120" value="C:\Lang\rust\bin\rustc.exe" />
+
+<define name="#delphi" de_code_autodetect="203" value="C:\Lang\delphi\Bin\DCC32.EXE" />
+<define name="#delphi_units" de_code_autodetect="203.units" value="C:\Lang\delphi\Bin" />
 <define name="#fpc" de_code_autodetect="202" value="C:\Lang\FPC\3.0.0\bin\i386-win32\fpc.exe" />
 <define name="#pascalabc" de_code_autodetect="205" value="C:\Lang\PascalABC.NET\3.2\pabcnetcclear.exe" />
 <define name="#bpc" de_code_autodetect="201" value="%comspec% /C ..\bpc.cmd" />
@@ -137,7 +142,7 @@
 <!-- Cross-platform C/C++ compiler -->
 <de
     code="101"
-    compile='#gnu_cpp#gcc_stack -O2 "%full_name" -o "%name.exe"'
+    compile='"#gnu_cpp"#gcc_stack -O2 "%full_name" -o "%name.exe"'
     run='"%name.exe"'
     run_interactive='"%name.exe"'
     runfile='%name.exe'
@@ -149,7 +154,7 @@
 <!-- G++ -->
 <de
     code="102"
-    compile='#gnu_cpp -std=c++0x#gcc_stack -O3 "%full_name" -o "%name.exe"'
+    compile='"#gnu_cpp" -std=c++0x#gcc_stack -O3 "%full_name" -o "%name.exe"'
     run='"%name.exe"'
     run_interactive='"%name.exe"'
     runfile='%name.exe'
@@ -183,7 +188,7 @@
 <!-- GCC C only -->
 <de
     code="105"
-    compile='#gnu_c -x c#gcc_stack -O2 "%full_name" -o "%name.exe"'
+    compile='"#gnu_c" -x c#gcc_stack -O2 "%full_name" -o "%name.exe"'
     run='"%name.exe"'
     run_interactive='"%name.exe"'
     runfile='%name.exe'
@@ -195,7 +200,7 @@
 <!-- CLang -->
 <de
     code="106"
-    compile='#clang "%full_name" -o "%name.exe"'
+    compile='"#clang" "%full_name" -o "%name.exe"'
     run='"%name.exe"'
     run_interactive='"%name.exe"'
     generate='"%name.exe" %args'
@@ -206,6 +211,16 @@
 <de
     code="113"
     compile='"#ms_cpp" /Dstdext=std /Zc:forScope- /Ox /EHsc /nologo "%full_name" /Fe"%name.exe"'
+    run='"%name.exe"'
+    run_interactive='"%name.exe"'
+    generate='"%name.exe" %args'
+    validate='"%name.exe" "%test_input"'
+    check='"%name.exe" %checker_args'/>
+
+<!-- Rust -->
+<de
+    code="120"
+    compile='"#rust" "%full_name" -o "%name.exe"'
     run='"%name.exe"'
     run_interactive='"%name.exe"'
     generate='"%name.exe" %args'
@@ -236,7 +251,7 @@
 <!-- Delphi -->
 <de
     code="203"
-    compile='"#delphi" -CC "%full_name"'
+    compile='"#delphi" "-U#delphi_units" -CC "%full_name"'
     run='"%name.exe"'
     run_interactive='"%name.exe"'
     runfile='%name.exe'
@@ -260,6 +275,7 @@
 <de
     code="205"
     compile='"#pascalabc" "%full_name"'
+    encoding="CP866"
     run='"%name.exe"'
     run_interactive='"%name.exe"'
     runfile='%name.exe'
@@ -292,14 +308,14 @@
 <!-- Java -->
 <de
     code="401"
-    compile='"#java\javac.exe" "%full_name"'
-    run='"#java\java.exe" -Xss64m "%name"'
-    interactor_name='"#java\java.exe" -Xss64m "Interact"'
-    run_interactive='"#java\java.exe" -Xss64m "%name"'
+    compile='"#javac" "%full_name"'
+    run='"#java" -Xss64m "%name"'
+    interactor_name='"#java" -Xss64m "Interact"'
+    run_interactive='"#java" -Xss64m "%name"'
     runfile='%name.class'
-    generate='"#java\java.exe" -Xmx256m -Xss64m "%name" %args'
-    validate='"#java\java.exe" -Xmx256m -Xss64m "%name" "%test_input"'
-    check='"#java\java.exe" -Xss64m "%name" %checker_args'
+    generate='"#java" -Xmx256m -Xss64m "%name" %args'
+    validate='"#java" -Xmx256m -Xss64m "%name" "%test_input"'
+    check='"#java" -Xss64m "%name" %checker_args'
     extension='java'/>
 
 <!-- C# 1.1 -->
@@ -317,15 +333,15 @@
 <!-- Java + testlib4j.jar -->
 <de
     code="403"
-    compile='"#java\javac.exe" "%full_name" -cp testlib4j.jar'
-    run='"#java\java.exe" -Xss64m "%name"'
-    generate='"#java\java.exe" -Xss64m "%name" %args'
-    check='"#java\java.exe" -Xss64m -cp testlib4j.jar;. ru.ifmo.testlib.CheckerFramework %name %checker_args'/>
+    compile='"#javac" "%full_name" -cp testlib4j.jar'
+    run='"#java" -Xss64m "%name"'
+    generate='"#java" -Xss64m "%name" %args'
+    check='"#java" -Xss64m -cp testlib4j.jar;. ru.ifmo.testlib.CheckerFramework %name %checker_args'/>
 
 <!-- The Go Programming Language -->
 <de
     code="404"
-    compile='#go build -o "%name.exe" "%full_name" '
+    compile='"#go" build -o "%name.exe" "%full_name" '
     run='"%name.exe"'
     run_interactive='"%name.exe"'
     runfile='%name.exe'
@@ -403,7 +419,7 @@
 <!-- NodeJS -->
 <de
     code="507"
-    compile='#nodejs -c "%full_name"'
+    compile='"#nodejs" -c "%full_name"'
     run='"#nodejs" "%full_name"'
     generate='"#nodejs" "%name" %args'
     validate='"#nodejs" %full_name "%test_input"'
